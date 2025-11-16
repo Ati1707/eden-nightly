@@ -1,28 +1,14 @@
 name: Build
 
 concurrency:
-  group: build-eden-${{ github.ref }}-${{ github.event.inputs.job_to_run || 'all' }}
+  group: build-eden-${{ github.ref }}-info-windows
   cancel-in-progress: true
 
 on:
   workflow_dispatch:
-    inputs:
-      job_to_run:
-        type: choice
-        description: 'Choose target build platform'
-        options:
-          - all
-          - windows
-          - appimage
-          - macos
-          - android
-          - bsd
-          - info
-        default: 'all'
 
 jobs:
   info:
-    if: github.event.inputs.job_to_run == 'all' || github.event.inputs.job_to_run == 'info'
     runs-on: ubuntu-latest
     name: "Changelog"
     strategy:
@@ -73,183 +59,37 @@ jobs:
           name: source
           path: artifacts
 
-  appimage:
-    if: github.event.inputs.job_to_run == 'all' || github.event.inputs.job_to_run == 'appimage'
-    runs-on: ${{ matrix.runs-on }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - target: steamdeck
-            runs-on: ubuntu-latest
-            optimize: Normal
-          - target: steamdeck
-            runs-on: ubuntu-latest
-            optimize: PGO
-          - target: rog
-            runs-on: ubuntu-latest
-            optimize: Normal
-          - target: rog
-            runs-on: ubuntu-latest
-            optimize: PGO
-          - target: common
-            runs-on: ubuntu-latest
-            optimize: Normal
-          - target: common
-            runs-on: ubuntu-latest
-            optimize: PGO
-          - target: legacy
-            runs-on: ubuntu-latest
-            optimize: Normal
-          - target: legacy
-            runs-on: ubuntu-latest
-            optimize: PGO
-          - target: aarch64
-            runs-on: ubuntu-24.04-arm
-            optimize: Normal
-    container: 
-      image: ghcr.io/pkgforge-dev/archlinux:latest
-      options: --privileged --device /dev/fuse
-    name: "Appimage ${{ matrix.target }} ${{ matrix.optimize }}"
-    env:
-      TARGET: ${{ matrix.target }}
-      OPTIMIZE: ${{ matrix.optimize }}
-      CCACHE_DIR: ${{ github.workspace }}/.ccache
-      CCACHE_COMPILERCHECK: content
-      CCACHE_SLOPPINESS: time_macros
-    steps:
-      - uses: actions/checkout@v5.0.0
-        with:
-          persist-credentials: false
-
-      - name: Install dependencies
-        run: |
-          chmod +x ./linux-dependencies.sh
-          ./linux-dependencies.sh
-          
-      - name: Clone Eden
-        run: |
-          git clone 'https://git.eden-emu.dev/eden-emu/eden.git' ./eden
-
-      - name: Restore ccache for ${{ matrix.target }}
-        if: ${{ matrix.optimize == 'Normal'}}
-        uses: actions/cache/restore@v4
-        id: restore-ccache-appimage
-        with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ runner.os }}-ccache-${{ matrix.target }}-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-ccache-${{ matrix.target }}-
-
-      - name: Compile Eden ${{ matrix.target }}
-        run: |
-          chmod +x ./eden-appimage.sh
-          ./eden-appimage.sh
-
-      - name: Save ccache for ${{ matrix.target }}
-        if: ${{ matrix.optimize == 'Normal' && github.ref_name == 'main' }}
-        uses: actions/cache/save@v4
-        with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ steps.restore-ccache-appimage.outputs.cache-primary-key }}
-
-      - name: Upload appimage
-        uses: actions/upload-artifact@v5.0.0
-        with:
-          name: eden-${{ matrix.target}}-${{ matrix.optimize }}-appimage
-          path: eden/appimage
-
-      - name: Upload appbundle
-        uses: actions/upload-artifact@v5.0.0
-        with:
-          name: eden-${{ matrix.target}}-${{ matrix.optimize }}-appbundle
-          path: eden/appbundle
-
-  android:
-    if: github.event.inputs.job_to_run == 'all' || github.event.inputs.job_to_run == 'android'
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [Replace, Coexist, Optimized, Legacy]
-    name: "Android (${{ matrix.target }})"
-    env:
-      TARGET: ${{ matrix.target }}
-      CCACHE_DIR: ${{ github.workspace }}/.ccache
-      CCACHE_COMPILERCHECK: content
-      CCACHE_SLOPPINESS: time_macros
-    steps:
-      - uses: actions/checkout@v5.0.0
-
-      - name: Install dependencies
-        run: |
-          sudo rm /var/lib/man-db/auto-update
-          sudo apt-get update -y
-          sudo apt-get install ccache glslang-tools libvulkan-dev python3-requests -y
-
-      - name: Clone Eden
-        run: |
-          git clone 'https://git.eden-emu.dev/eden-emu/eden.git' ./eden
-
-      - name: Restore ccache for ${{ matrix.target }}
-        uses: actions/cache/restore@v4
-        id: restore-ccache-cache
-        with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ runner.os }}-android-ccache-${{ matrix.target }}-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-android-ccache-${{ matrix.target }}-
-
-      - name: Compile Eden android
-        run: |
-          chmod +x ./eden-android.sh
-          ./eden-android.sh
-
-      - name: Save ccache for ${{ matrix.target }}
-        if: ${{ github.ref_name == 'main' }}
-        uses: actions/cache/save@v4
-        with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ steps.restore-ccache-cache.outputs.cache-primary-key }}
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v5.0.0
-        with:
-          name: eden-android-${{ matrix.target }}
-          path: eden/src/android/artifacts/
-
   windows:
-    if: github.event.inputs.job_to_run == 'all' || github.event.inputs.job_to_run == 'windows'
     runs-on: ${{ matrix.runs-on }}
     name: "Windows ${{ matrix.toolchain }} ${{ matrix.optimize }} (${{ matrix.arch }})"
     strategy:
       fail-fast: false
       matrix:
         include:
-           - toolchain: msvc
-             optimize: normal
-             arch: x86_64
-             runs-on: windows-2022
-           - toolchain: msvc
-             optimize: normal
-             arch: arm64
-             runs-on: windows-11-arm
-           - toolchain: clang
-             optimize: normal
-             arch: x86_64
-             runs-on: windows-2022
-#           - toolchain: clang
-#             optimize: PGO
-#             arch: x86_64
-#             runs-on: windows-2022
-#           - toolchain: msys2
-#             optimize: PGO
-#             arch: x86_64
-#             runs-on: windows-2022
-           - toolchain: msys2
-             optimize: normal
-             arch: x86_64
-             runs-on: windows-2022
+            - toolchain: msvc
+              optimize: normal
+              arch: x86_64
+              runs-on: windows-2022
+            - toolchain: msvc
+              optimize: normal
+              arch: arm64
+              runs-on: windows-11-arm
+            - toolchain: clang
+              optimize: normal
+              arch: x86_64
+              runs-on: windows-2022
+#            - toolchain: clang
+#              optimize: PGO
+#              arch: x86_64
+#              runs-on: windows-2022
+#            - toolchain: msys2
+#              optimize: PGO
+#              arch: x86_64
+#              runs-on: windows-2022
+            - toolchain: msys2
+              optimize: normal
+              arch: x86_64
+              runs-on: windows-2022
     defaults:
       run:
         shell: ${{ matrix.toolchain == 'msys2' && 'msys2 {0}' || 'bash {0}' }}
@@ -356,131 +196,10 @@ jobs:
           name: eden-windows-${{ matrix.toolchain }}-${{ matrix.optimize }}-${{ matrix.arch }}-installer
           path: installer/artifacts/
 
-  macos:
-    if: github.event.inputs.job_to_run == 'all' || github.event.inputs.job_to_run == 'macos'
-    runs-on: macos-latest
-    name: "MacOS (${{ matrix.target }})"
-    strategy:
-      matrix:
-        target: [arm64]
-    env:
-      TARGET: ${{ matrix.target }}
-      CCACHE_DIR: ${{ github.workspace }}/.ccache
-      CCACHE_COMPILERCHECK: content
-      CCACHE_SLOPPINESS: time_macros
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Clone Eden
-        run: |
-          git clone 'https://git.eden-emu.dev/eden-emu/eden.git' ./eden
-
-      - name: Restore ccache for ${{ matrix.target }}
-        uses: actions/cache/restore@v4
-        id: restore-ccache-cache
-        with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ runner.os }}-${{ matrix.target }}-ccache-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.target }}-ccache-
-
-      - name: Install dependencies
-        run: |
-          brew install --formula --quiet autoconf automake boost ccache glslang hidapi libiconv libtool nasm speexdsp vulkan-loader vulkan-headers vulkan-utility-libraries molten-vk
-
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: 6.7.3
-          cache: 'true'
-
-      - name: Compile Eden MacOS (${{ matrix.target }})
-        run: |
-          chmod +x ./eden-macos.sh
-          ./eden-macos.sh
-
-      - name: Upload
-        uses: actions/upload-artifact@v5.0.0
-        with:
-          name: eden-macos-${{ matrix.target }}
-          path: eden/build/artifacts/
-
-      - name: Save ccache for ${{ matrix.target }}
-        if: ${{ github.ref_name == 'main' }}
-        uses: actions/cache/save@v4
-        with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ steps.restore-ccache-cache.outputs.cache-primary-key }}
-
-  bsd:
-    if: github.event.inputs.job_to_run == 'all' || github.event.inputs.job_to_run == 'bsd'
-    name: ${{ matrix.target }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [FreeBSD, Solaris]
-    env:
-      TARGET: ${{ matrix.target }}
-      CCACHE_DIR: ${{ github.workspace }}/.ccache
-      CCACHE_COMPILERCHECK: content
-      CCACHE_SLOPPINESS: time_macros
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5.0.0
-        
-      - name: Clone Eden
-        run: |
-          git clone 'https://git.eden-emu.dev/eden-emu/eden.git' ./eden
-
-      - name: Restore ccache
-        if: matrix.target == 'FreeBSD'
-        uses: actions/cache/restore@v4
-        id: restore-ccache-freebsd
-        with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ runner.os }}-${{ matrix.target }}-ccache-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.target }}-ccache-
-
-      - name: Compile Eden FreeBSD
-        if: matrix.target == 'FreeBSD'
-        uses: vmactions/freebsd-vm@v1.2.6
-        with:
-          usesh: true
-          envs: 'TARGET CCACHE_DIR CCACHE_COMPILERCHECK CCACHE_SLOPPINESS'
-          run: |
-            chmod +x ./BSD-dependencies.sh ./eden-BSD.sh
-            ./BSD-dependencies.sh
-            ./eden-BSD.sh
-
-      - name: Compile Eden Solaris
-        if: matrix.target == 'Solaris'
-        uses: vmactions/solaris-vm@v1.1.6
-        with:
-          usesh: true
-          envs: 'TARGET'
-          run: |
-            chmod +x ./BSD-dependencies.sh ./eden-BSD.sh
-            ./BSD-dependencies.sh && ./eden-BSD.sh
-
-      - name: Save ccache
-        if: matrix.target == 'FreeBSD' && github.ref_name == 'main'
-        uses: actions/cache/save@v4
-        with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ steps.restore-ccache-freebsd.outputs.cache-primary-key }}
-
-      - name: Upload
-        uses: actions/upload-artifact@v5.0.0
-        with:
-          name: eden-${{ matrix.target }}
-          path: eden/build/artifacts/
-
   release:
-    if: github.ref_name == 'main' && github.event.inputs.job_to_run == 'all'
+    if: github.ref_name == 'main'
     name: "release"
-    needs: [info, appimage, windows, macos, android, bsd]
+    needs: [info, windows]
     permissions:
       actions: read
       security-events: write
@@ -512,4 +231,5 @@ jobs:
           fail_on_unmatched_files: false
           make_latest: true
           files: |
-            *.AppImage*, *.AppBundle*, *.7z, *.tar.gz, *.exe, *.apk
+            *.7z
+            *.exe
