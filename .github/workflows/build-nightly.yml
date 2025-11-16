@@ -33,7 +33,6 @@ jobs:
           latest_release_info=$(curl -H "Authorization: token $GH_TOKEN" "$api_url/releases/latest")
           last_release_tag=$(echo "$latest_release_info" | jq -r '.tag_name')
           echo "Last release tag: ${last_release_tag}"
-          # Output the last tag for the comparison step
           echo "last_release_tag=${last_release_tag}" >> $GITHUB_OUTPUT
           old_count="${last_release_tag##*-}"
           echo "OLD_COUNT=$old_count" >> "$GITHUB_ENV"
@@ -60,24 +59,28 @@ jobs:
           fi
 
       - name: Upload tag file
+        if: steps.compare.outputs.should_build == 'true'
         uses: actions/upload-artifact@v5.0.0
         with:
           name: tag
           path: ~/tag
 
       - name: Upload count file
+        if: steps.compare.outputs.should_build == 'true'
         uses: actions/upload-artifact@v5.0.0
         with:
           name: count
           path: ~/count
 
       - name: Upload changelog file
+        if: steps.compare.outputs.should_build == 'true'
         uses: actions/upload-artifact@v5.0.0
         with:
           name: changelog
           path: ~/changelog
 
       - name: Upload source code
+        if: steps.compare.outputs.should_build == 'true'
         uses: actions/upload-artifact@v5.0.0
         with:
           name: source
