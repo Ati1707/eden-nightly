@@ -189,9 +189,9 @@ jobs:
           ./eden-windows.sh
 
       - name: Install NSIS
-        shell: powershell
-        run: |
-          choco install nsis -y --no-progress
+        uses: repolevedavaj/install-nsis@v1.1.0
+        with:
+          nsis-version: '3.11'
           
       - name: Generate installer
         shell: cmd
