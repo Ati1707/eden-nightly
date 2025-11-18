@@ -140,8 +140,8 @@ jobs:
           cache: false
           install: autoconf automake-wrapper automake autoconf-archive base-devel git libtool make p7zip zip unzip
           pacboy: >-
-            boost:p ccache:p clang:p cmake:p glslang:p libusb:p lld:p llvm:p ninja:p qt6-base:p qt6-tools:p qt6-translations:p qt6-svg:p rapidjson:p toolchain:p python-pip:p enet:p opus:p
-
+            boost:p ccache:p clang:p cmake:p enet:p glslang:p libusb:p lld:p llvm:p lz4:p mbedtls:p ninja:p nlohmann-json:p opus:p qt6-tools:p qt6-translations:p qt6-svg:p qt6-static:p rapidjson:p toolchain:p python-pip:p zlib:p zstd:p
+            jbigkit:p xz:p libdeflate:p bzip2:p lerc:p graphite2:p crt-git:p libwebp:p libtiff:p brotli:p
       - name: Install Qt
         if: ${{ matrix.toolchain != 'msys2' }}
         uses: jurplel/install-qt-action@v4.3.0
