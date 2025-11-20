@@ -23,7 +23,7 @@ echo "   Commit count: $COUNT"
 CHANGELOG_FILE=~/changelog
 BASE_COMMIT_URL="https://git.eden-emu.dev/eden-emu/eden/commit"
 BASE_COMPARE_URL="https://git.eden-emu.dev/eden-emu/eden/compare"
-BASE_DOWNLOAD_URL="https://github.com/pflyly/eden-nightly/releases/download"
+BASE_DOWNLOAD_URL="https://github.com/Ati1707/eden-nightly/releases/download"
 
 # Fallback if OLD_COUNT is empty or null
 echo "-- Checking previous release count..."
@@ -43,7 +43,7 @@ echo "**This repository is not affiliated with the official Eden development tea
 echo "**These builds are experimental and may be unstable. Use them at your own risk, and please do not report issues from these builds to the official channels unless confirmed on official releases.**" >> "$CHANGELOG_FILE"
 echo >> "$CHANGELOG_FILE"
 echo "> [!IMPORTANT]" >> "$CHANGELOG_FILE"
-echo "> See the **[Release Overview](https://github.com/pflyly/eden-nightly?tab=readme-ov-file#release-overview)** section for detailed differences between builds." >> "$CHANGELOG_FILE"
+echo "> See the **[Release Overview](https://github.com/Ati1707/eden-nightly?tab=readme-ov-file#release-overview)** section for detailed differences between builds." >> "$CHANGELOG_FILE"
 echo ">" >> "$CHANGELOG_FILE"
 echo  -e "> **PGO-optimized** builds are now available, can offer up to **5–10%** higher FPS in theory depending on games.\n>**But note that they are now extremely experimental with unstable performance boost across different builds even with the same game.**" >> "$CHANGELOG_FILE"
 echo >> "$CHANGELOG_FILE"
