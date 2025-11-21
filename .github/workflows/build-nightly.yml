@@ -161,6 +161,9 @@ jobs:
         shell: powershell
         run: |
           ./install-vulkan-sdk.ps1
+
+      - name: Add VulkanSDK to PATH
+        run: echo "C:\\VulkanSDK\\Bin" >> $GITHUB_PATH
           
       - name: Install Ninja
         if: ${{ matrix.toolchain != 'msys2' }}
