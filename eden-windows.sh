@@ -48,6 +48,21 @@ declare -a BASE_CMAKE_FLAGS=(
     "-DCMAKE_BUILD_TYPE=Release"
 )
 
+if [ -d "C:/VulkanSDK" ]; then
+    VULKAN_VERSION_DIR=$(ls -d C:/VulkanSDK/*/ | head -n 1)
+    if [ -n "$VULKAN_VERSION_DIR" ]; then
+        echo "Found Vulkan SDK at: $VULKAN_VERSION_DIR"
+        export PATH="$VULKAN_VERSION_DIR/Bin:$PATH"
+        export VULKAN_SDK="$VULKAN_VERSION_DIR"
+    else
+        echo "WARNING: Vulkan SDK root found but no version directory detected."
+    fi
+else 
+    if [ -n "$VULKAN_SDK" ]; then
+         export PATH="$VULKAN_SDK/Bin:$PATH"
+    fi
+fi
+
 # Set Extra CMake flags
 declare -a EXTRA_CMAKE_FLAGS=()
 case "${TOOLCHAIN}" in
@@ -65,7 +80,6 @@ case "${TOOLCHAIN}" in
                 "-DCMAKE_CXX_COMPILER=clang-cl"
                 "-DCMAKE_CXX_FLAGS=-Ofast"
                 "-DCMAKE_C_FLAGS=-Ofast"
-                # Use the sccache provided by the action
                 "-DCMAKE_C_COMPILER_LAUNCHER=sccache"
                 "-DCMAKE_CXX_COMPILER_LAUNCHER=sccache"
             )
@@ -98,7 +112,6 @@ case "${TOOLCHAIN}" in
         EXTRA_CMAKE_FLAGS+=(
         "-DYUZU_ENABLE_LTO=ON"
         "-DDYNARMIC_ENABLE_LTO=ON"
-        # Use the sccache provided by the action
         "-DCMAKE_C_COMPILER_LAUNCHER=sccache"
         "-DCMAKE_CXX_COMPILER_LAUNCHER=sccache"
         )
