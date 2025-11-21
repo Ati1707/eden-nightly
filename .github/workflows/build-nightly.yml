@@ -102,7 +102,7 @@ jobs:
             - toolchain: msvc
               optimize: normal
               arch: arm64
-              runs-on: windows-11-arm 
+              runs-on: windows-11-arm
             - toolchain: clang
               optimize: normal
               arch: x86_64
@@ -118,14 +118,10 @@ jobs:
       TOOLCHAIN: ${{ matrix.toolchain }}
       ARCH: ${{ matrix.arch }}
       OPTIMIZE: ${{ matrix.optimize }}
-      SCCACHE_DIR: "D:\\a\\.sccache"
-      SCCACHE_GHA_ENABLED: "true"
-      CMAKE_C_COMPILER_LAUNCHER: "sccache"
-      CMAKE_CXX_COMPILER_LAUNCHER: "sccache"
       CMAKE_GENERATOR: "Ninja"
       CXXFLAGS: "-DNOMINMAX"
     steps:
-      - uses: actions/checkout@v5.0.1 
+      - uses: actions/checkout@v5.0.1
 
       - name: Set up MSVC
         if: ${{ matrix.toolchain != 'msys2' }}
@@ -166,11 +162,18 @@ jobs:
         run: |
           ./install-vulkan-sdk.ps1
           
-      - name: Install Build Tools (Ninja & sccache)
+      - name: Install Ninja
         if: ${{ matrix.toolchain != 'msys2' }}
         shell: bash
         run: |
-          choco install ninja sccache -y --no-progress
+          choco install ninja -y --no-progress
+          
+      - name: Setup sccache
+        if: ${{ matrix.toolchain != 'msys2' }}
+        uses: hendrikmuhs/ccache-action@v1.2.19
+        with:
+          key: ${{ runner.os }}-sccache-${{ matrix.toolchain }}-${{ matrix.arch }}
+          variant: sccache
           
       - name: Install LLVM
         if: ${{ matrix.toolchain != 'msys2' && matrix.toolchain == 'clang' }}
@@ -184,25 +187,10 @@ jobs:
           cd ./eden
           echo "VERSION=$(git rev-list --count HEAD)" >> "${GITHUB_ENV}"
 
-      - name: Restore sccache
-        if: ${{ matrix.optimize == 'normal' }}
-        uses: actions/cache/restore@v4
-        id: restore-sccache
-        with:
-          path: ${{ env.SCCACHE_DIR }}
-          key: ${{ runner.os }}-sccache-${{ matrix.toolchain }}-${{ matrix.arch }}-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-sccache-${{ matrix.toolchain }}-${{ matrix.arch }}-
-
       - name: Compile Eden Windows
         run: |
           chmod +x ./eden-windows.sh
           ./eden-windows.sh
-
-      - name: sccache stats
-        if: ${{ matrix.toolchain != 'msys2' && matrix.optimize == 'normal' }}
-        shell: bash
-        run: sccache --show-stats
 
       - name: Install NSIS
         uses: repolevedavaj/install-nsis@v1.1.0
@@ -219,15 +207,8 @@ jobs:
           mkdir artifacts 2>nul
           move /y *.exe artifacts\
 
-      - name: Save sccache
-        if: ${{ matrix.optimize == 'normal' && github.ref_name == 'main' }}
-        uses: actions/cache/save@v4
-        with:
-          path: ${{ env.SCCACHE_DIR }}
-          key: ${{ steps.restore-sccache.outputs.cache-primary-key }}
-
       - name: Upload Eden 7z
-        uses: actions/upload-artifact@v5.0.0 
+        uses: actions/upload-artifact@v5.0.0
         with:
           name: eden-windows-${{ matrix.toolchain }}-${{ matrix.optimize }}-${{ matrix.arch }}-7z
           path: eden/build/artifacts/
